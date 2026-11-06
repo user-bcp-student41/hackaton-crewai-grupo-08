@@ -88,7 +88,7 @@ class ParsePlanTests(unittest.TestCase):
     def test_the_real_plan_yields_both_official_stories_and_the_extension(self):
         stories = by_id(plan_stories.parse_plan(REAL_PLAN.read_text(encoding="utf-8"))["stories"])
         self.assertEqual(list(stories), ["HU-01", "HU-02", "EXT-COL"])
-        self.assertEqual(len(stories["HU-01"]["criteria"]), 6)
+        self.assertEqual(len(stories["HU-01"]["criteria"]), 17)
         self.assertEqual(len(stories["HU-02"]["criteria"]), 6)
         self.assertEqual(len(stories["EXT-COL"]["criteria"]), 3)
         self.assertEqual(len(stories["HU-01"]["cross_cutting"]), 5)

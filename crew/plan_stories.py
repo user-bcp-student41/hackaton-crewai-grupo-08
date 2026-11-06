@@ -3,7 +3,7 @@ import re
 
 STORY_HEADING = re.compile(r"^(#{1,6})\s+(?:\d+(?:\\?\.\d+)*\s+)?(HU-\d+)\s*[—–-]\s*(.+?)\s*$")
 HEADING = re.compile(r"^(#{1,6})\s+(.*?)\s*$")
-CRITERION_ID = re.compile(r"^[A-Z]+\d*-AC\d+$")
+CRITERION_ID = re.compile(r"^[A-Z]+\d*-(?:AC|P)\d+$")
 EXTENSION_ID = re.compile(r"^([A-Z]{2,6})-(\d+)$")
 CROSS_CUTTING_ID = re.compile(r"^EP-HU([\d_]+)-(\d+)$")
 CONTEXT_HEADER = re.compile(r"^\*\*Contexto y supuestos a respetar en (HU-\d+)\*\*\s*$")

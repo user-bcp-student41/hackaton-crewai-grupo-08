@@ -77,6 +77,7 @@ from mcp_projects import (
     ensure_labels,
     find_issue_by_marker,
     create_issue,
+    update_issue,
     add_issue_to_project,
     verify_target_repo,
     get_feature_from_item,
@@ -1184,7 +1185,7 @@ def _choose_publication(pending: list[dict], project: dict) -> list[dict]:
         options = "[s] crear todas  [h] solo las HU oficiales  [n] cancelar"
     while True:
         try:
-            answer = input(f"¿Crear estas Issues y asociarlas al proyecto? {options}: ").strip().lower()
+            answer = input(f"¿Crear o actualizar estas Issues y asociarlas al proyecto? {options}: ").strip().lower()
         except (EOFError, KeyboardInterrupt):
             return []
         if answer in ("s", "si", "sí", "y", "yes"):
@@ -1201,9 +1202,17 @@ def _publish_plan_stories(features: list[dict], project: dict, checkpoint: dict,
     """Crea las Issues y las asocia al proyecto; reanudable y sin duplicados."""
     published = checkpoint.setdefault("published", {})
 
+    def body_of(feature: dict) -> str:
+        spec = (OUTPUT_DIR / feature["product_owner_spec_path"]).read_text(encoding="utf-8")
+        return plan_stories.issue_body(feature["plan_story"], spec, source_name)
+
+    def digest_of(feature: dict) -> str:
+        return hashlib.sha256(body_of(feature).encode("utf-8")).hexdigest()
+
     def done(feature: dict) -> bool:
         record = published.get(feature["plan_id"], {})
-        return bool(record.get("number") and record.get("project_linked"))
+        return bool(record.get("number") and record.get("project_linked")
+                    and record.get("body_sha") == digest_of(feature))
 
     pending = [feature for feature in features if not done(feature)]
     if not pending:
@@ -1230,12 +1239,20 @@ def _publish_plan_stories(features: list[dict], project: dict, checkpoint: dict,
         key = feature["plan_id"]
         record = published.setdefault(key, {})
         try:
+            body = body_of(feature)
+            body_sha = hashlib.sha256(body.encode("utf-8")).hexdigest()
             if not record.get("number"):
-                spec = (OUTPUT_DIR / feature["product_owner_spec_path"]).read_text(encoding="utf-8")
-                body = plan_stories.issue_body(feature["plan_story"], spec, source_name)
-                issue = find_issue_by_marker(plan_stories.story_marker(key)) or create_issue(
-                    feature["title"], body, feature["labels"])
-                record.update(number=issue["number"], id=issue["id"], url=issue.get("url", ""))
+                issue = find_issue_by_marker(plan_stories.story_marker(key), key)
+                if issue:
+                    update_issue(issue["number"], feature["title"], body, issue.get("id"))
+                    print(f"  Issue #{issue['number']} existente actualizada: {feature['title']}")
+                else:
+                    issue = create_issue(feature["title"], body, feature["labels"])
+                record.update(number=issue["number"], id=issue["id"], url=issue.get("url", ""), body_sha=body_sha)
+                _save_json(checkpoint_path, checkpoint)
+            elif record.get("body_sha") != body_sha:
+                update_issue(record["number"], feature["title"], body, record.get("id"))
+                record["body_sha"] = body_sha
                 _save_json(checkpoint_path, checkpoint)
             if not record.get("project_linked"):
                 add_issue_to_project(project["id"], record["id"])
@@ -1271,8 +1288,8 @@ def run_product_owner_from_plan(project: dict) -> None:
     checkpoint = _load_json(checkpoint_path, {"steps": {}, "published": {}})
     digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
     if checkpoint.get("plan_sha256") not in (None, digest):
-        print("El plan cambió desde la última ejecución: se regenerarán las especificaciones. "
-              "Las Issues ya creadas no se modifican.")
+        print("El plan cambió desde la última ejecución: se regenerarán las especificaciones "
+              "y se actualizarán las Issues ya creadas.")
         checkpoint["steps"] = {}
     checkpoint["plan_sha256"] = digest
     steps = checkpoint.setdefault("steps", {})

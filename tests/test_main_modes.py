@@ -148,6 +148,7 @@ class MainModeTests(unittest.TestCase):
             "create_issue": MagicMock(side_effect=lambda title, body, labels: {
                 "id": f"I_{title[:5]}", "number": next(issues), "url": f"https://github.com/o/r/issues/{title[:5]}"}),
             "add_issue_to_project": MagicMock(),
+            "update_issue": MagicMock(),
         }
         defaults.update(mcp)
         stack = contextlib.ExitStack()
@@ -219,12 +220,15 @@ class MainModeTests(unittest.TestCase):
             create.assert_not_called()
             second_link.assert_called_once_with("PVT_1", "I_HU-02")
 
-    def test_an_existing_issue_with_the_marker_is_reused_instead_of_duplicated(self):
+    def test_an_existing_issue_is_edited_instead_of_duplicated(self):
         with tempfile.TemporaryDirectory() as tmp:
             existing = {"id": "I_old", "number": 7, "url": "https://github.com/o/r/issues/7"}
-            find = MagicMock(side_effect=lambda marker: existing if "HU-01" in marker else None)
+            find = MagicMock(side_effect=lambda marker, story_id=None: existing if story_id == "HU-01" else None)
             mocks, _ = self.run_plan(tmp, find_issue_by_marker=find)
             self.assertEqual([c.args[0] for c in mocks["create_issue"].call_args_list][0], "HU-02 - Confirmación de pagos")
+            update = mocks["update_issue"].call_args_list[0].args
+            self.assertEqual(update[:2], (7, "HU-01 - Registro y activación"))
+            self.assertIn("HU1-AC1", update[2])
             self.assertEqual(mocks["add_issue_to_project"].call_args_list[0].args, ("PVT_1", "I_old"))
 
     def test_wrong_target_repo_stops_before_creating_anything(self):

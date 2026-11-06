@@ -14,7 +14,7 @@ import json
 import threading
 import requests
 
-_URL     = os.getenv("PROJECTS_MCP_URL",     "http://localhost:8081")
+_URL     = os.getenv("PROJECTS_MCP_URL",     "http://localhost:8089")
 _KEY     = os.getenv("PROJECTS_MCP_API_KEY", "")
 
 _rpc_id       = 0
@@ -553,14 +553,30 @@ def ensure_labels(names: list[str], descriptions: dict[str, str] | None = None) 
     return created
 
 
-def find_issue_by_marker(marker: str) -> dict | None:
-    """Busca un Issue (abierto o cerrado) cuyo cuerpo contenga la marca; sirve para no duplicar al reanudar."""
+def find_issue_by_marker(marker: str, story_id: str | None = None) -> dict | None:
+    """Busca un Issue (abierto o cerrado) por marca en el cuerpo o, si no, por título que empiece con story_id.
+
+    Sirve para no duplicar al reanudar y para editar una Issue creada antes por otra vía."""
     result = call_tool("manage_issues", {"action": "list", "status": "all", "limit": 100})
     raw = result if isinstance(result, list) else result.get("issues", result.get("items", []))
-    for issue in raw:
-        if isinstance(issue, dict) and marker in str(issue.get("description") or issue.get("body") or ""):
-            return {"id": issue.get("id"), "number": issue.get("number"), "url": issue.get("url", "")}
+    issues = [issue for issue in raw if isinstance(issue, dict)]
+    by_title = re.compile(rf"^\s*{re.escape(story_id)}(?!\d)", re.IGNORECASE) if story_id else None
+    for matches in (lambda i: marker in str(i.get("description") or i.get("body") or ""),
+                    lambda i: bool(by_title and by_title.match(str(i.get("title", ""))))):
+        for issue in issues:
+            if matches(issue):
+                return {"id": issue.get("id"), "number": issue.get("number"), "url": issue.get("url", "")}
     return None
+
+
+def update_issue(number: int | str, title: str, body: str, issue_id: str | None = None) -> dict:
+    """Edita título y cuerpo de un Issue existente sin tocar sus etiquetas."""
+    params = {"action": "update", "owner": _OWNER, "repo": _REPO,
+              "issueNumber": int(number), "title": title, "description": body}
+    issue_id = issue_id or get_feature(number).get("issue_id")
+    if issue_id:  # el MCP resuelve la mutación GraphQL con el id de nodo
+        params["issueId"] = issue_id
+    return call_tool("manage_issues", params)
 
 
 def create_issue(title: str, body: str, labels: list[str]) -> dict:

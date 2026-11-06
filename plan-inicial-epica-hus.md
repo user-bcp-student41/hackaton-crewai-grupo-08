@@ -10,6 +10,8 @@ La propuesta consiste en una aplicación de demostración para ayudar a organiza
 
 Este plan se limita a las historias oficiales **HU-01 — Registro y activación** y **HU-02 — Confirmación de pagos de bajo monto**. De la épica solo incorporamos los objetivos, supuestos y requisitos transversales que corresponden a estas dos historias: onboarding de baja fricción, pago de bajo monto, confirmación clara, validación de límites por proveedor/canal e instrumentación de onboarding, checkout y activación. No incorporamos requisitos propios de otras historias. El panel de colecta será una funcionalidad adicional de nuestra aplicación.
 
+Para esta propuesta, HU-01 también detalla el registro con DNI o CE, la validación del correo mediante OTP, el inicio de sesión y el cierre de sesión. Estas reglas concretas son decisiones del plan, pendientes de validación con Producto y el mentor; no se atribuyen automáticamente al texto oficial de la historia.
+
 \---
 
 # 1\. Punto 1 — ¿Hasta dónde llega nuestro alcance de la wallet?
@@ -62,13 +64,15 @@ Los montos son ficticios y sirven únicamente para la demostración.
 
 ## 1.5 Flujo principal alineado con HU-01 y HU-02
 
-1. El usuario inicia el onboarding y ve la secuencia de pasos y el paso actual (HU-01).
-2. Si falta un dato obligatorio o un dato es inválido, el sistema bloquea el avance y muestra cómo corregirlo (HU-01).
-3. Al finalizar correctamente, la wallet cambia a `ACTIVE` y el usuario accede al punto de entrada de pagos de bajo monto (HU-01).
-4. Antes de confirmar el pago, la pantalla muestra claramente el destinatario y el monto; valida el límite aplicable al proveedor/canal antes de enviar (HU-02).
-5. El sistema gestiona la respuesta del proveedor, incluidas las transiciones asíncronas, y comunica un resultado terminal por intento: exitoso, fallido o expirado (HU-02).
-6. Si el pago es exitoso, se muestra la referencia y se conserva en el historial. Si falla o expira, se ofrecen acciones claras para reintentar o volver, evitando cargos duplicados (HU-02).
-7. La aplicación registra los eventos analíticos requeridos por ambas historias. Como extensión propia, el panel de colecta suma únicamente pagos exitosos vinculados a ella.
+1. El usuario inicia el registro y ve los dos pasos del onboarding y el paso actual (HU-01).
+2. En el paso 1 selecciona el tipo de documento (solo DNI o CE), ingresa su número de documento de 8 caracteres numéricos, un correo válido y una contraseña de 6 dígitos mediante un campo de contraseña visible. El campo no admite letras ni caracteres extraños, ni más de 8 caracteres en el documento o más de 6 en la contraseña. Si falta información o es inválida, no puede avanzar y recibe indicaciones para corregirla (HU-01).
+3. En el paso 2 recibe un código OTP en el correo registrado y lo ingresa. Mientras no se valide, el cliente permanece sin validar y no puede iniciar sesión; un código incorrecto o expirado no completa el registro (HU-01).
+4. Al validar el OTP, el cliente queda validado, finaliza el onboarding y la wallet cambia a `ACTIVE`. Luego puede iniciar sesión con su documento (DNI o CE) y su contraseña, y acceder al punto de entrada de pagos de bajo monto (HU-01).
+5. Antes de confirmar el pago, la pantalla muestra claramente el destinatario y el monto; valida el límite aplicable al proveedor/canal antes de enviar (HU-02).
+6. El sistema gestiona la respuesta del proveedor, incluidas las transiciones asíncronas, y comunica un resultado terminal por intento: exitoso, fallido o expirado (HU-02).
+7. Si el pago es exitoso, se muestra la referencia y se conserva en el historial. Si falla o expira, se ofrecen acciones claras para reintentar o volver, evitando cargos duplicados (HU-02).
+8. El usuario autenticado ve un botón de cerrar sesión (logout) y, al usarlo, la sesión deja de permitir el acceso a las áreas protegidas (HU-01).
+9. La aplicación registra los eventos analíticos requeridos por ambas historias. Como extensión propia, el panel de colecta suma únicamente pagos exitosos vinculados a ella.
 
 ## 1.6 Límite del alcance
 
@@ -76,11 +80,20 @@ Los montos son ficticios y sirven únicamente para la demostración.
 
 El alcance incluido toma de la **épica únicamente lo que corresponde a HU-01 y HU-02**. El flujo de la colecta escolar sirve como contexto de demostración, pero no reemplaza los requisitos originales de la wallet. Se utilizarán datos sintéticos y el mock/contrato disponible.
 
-**A. Onboarding de la wallet — HU-01**
+**A. Registro, onboarding y sesión de la wallet — HU-01**
 
 * Flujo guiado que muestre la secuencia de pasos requeridos y el paso actual en todo momento.
-* Validación de información obligatoria y datos inválidos; bloquear el avance y explicar cómo corregirlos.
-* Al completar el onboarding, cambiar el estado de la wallet a `ACTIVE` y habilitar la entrada a pagos de bajo monto.
+* Paso 1: seleccionar el tipo de documento, limitado a DNI y CE, e ingresar el número como texto de 8 caracteres numéricos, por ejemplo `73757451`, conservando posibles ceros iniciales. Registrar también un correo válido y una contraseña de 6 dígitos, ingresada en un campo de contraseña visible que bloquea la escritura de más de 6 caracteres.
+* Validar todos los campos obligatorios tanto en la interfaz como en el servidor; bloquear el avance y explicar cómo corregir datos ausentes o inválidos.
+* Validar la consistencia del documento: rechazar letras, espacios y caracteres extraños, y bloquear la escritura de más de 8 caracteres.
+* Mostrar el campo de contraseña en el registro y en el inicio de sesión, y un botón de cerrar sesión visible una vez autenticado.
+* Aplicar los colores corporativos en las pantallas de HU-01 (paleta por confirmar con Producto).
+* No mostrar en la interfaz referencias al entorno de prueba, como "admite test" o "debe empezar con test".
+* Paso 2: enviar un OTP al correo registrado y validarlo antes de marcar al cliente como validado. Mostrar errores accionables para códigos incorrectos o expirados y ofrecer el reenvío del código sin completar el registro anticipadamente.
+* Al validar el OTP, completar el onboarding y cambiar la wallet a `ACTIVE`. Un cliente no validado no puede iniciar sesión ni acceder a pagos.
+* Permitir el inicio de sesión del cliente validado con su documento (DNI o CE) y contraseña; rechazar credenciales incorrectas sin crear una sesión y habilitar el acceso a pagos tras la autenticación.
+* Permitir cerrar sesión e invalidar la sesión para impedir el acceso posterior a áreas protegidas hasta un nuevo inicio de sesión.
+* No almacenar contraseñas ni OTP en texto plano ni incluirlos en eventos o logs. Utilizar solo datos sintéticos y documentar si el envío de correo es real o simulado según el contrato disponible.
 * Registrar eventos de inicio del onboarding, finalización de cada paso y cierre del flujo.
 * Preparar la instrumentación que permita medir la duración del onboarding, contar nuevos usuarios activos mensualmente y atribuir gasto de adquisición para calcular CAC.
 
@@ -122,6 +135,9 @@ El alcance incluido toma de la **épica únicamente lo que corresponde a HU-01 y
 
 ### Decisiones pendientes con PO/Producto y mentor
 
+* Validar que el registro con DNI o CE, correo y OTP, el inicio de sesión y el cierre de sesión forman parte del alcance acordado de HU-01.
+* Confirmar la regla de contraseña: las observaciones de pantalla indican 6 dígitos con bloqueo de más caracteres, lo que reemplaza la regla anterior (mínimo 8, mayúscula y carácter especial); confirmar también el formato del CE y la paleta de colores corporativos.
+* Confirmar el contrato disponible para registro, autenticación, envío y validación del OTP; definir su vigencia, límites de intentos y reenvío, y si la demo utilizará un proveedor o un mock de correo.
 * Confirmar el umbral de monto bajo por proveedor/canal.
 * Confirmar la definición oficial de los eventos/timestamps de inicio y fin del onboarding y los eventos que delimitan el funnel de checkout.
 * Validar las etiquetas visibles de estados terminales de pago.
@@ -152,7 +168,7 @@ El equipo trabajará con cinco roles: **PO, Arquitecto, AI Engineer, Testing y S
 
 * Implementa la interfaz y la lógica funcional priorizada por el equipo.
 * Integra los endpoints del mock según el contrato disponible.
-* Desarrolla el flujo de onboarding, el pago a contacto y, si el flujo principal está estable, el panel básico de colecta.
+* Desarrolla el registro, la validación OTP, el inicio y cierre de sesión, el pago a contacto y, si el flujo principal está estable, el panel básico de colecta.
 * Utiliza herramientas de IA para apoyar la implementación, análisis y resolución de problemas.
 * Prepara instrucciones y contexto claros para las tareas que se deleguen a la IA y revisa críticamente el código generado antes de integrarlo.
 * Corrige errores y mantiene el código integrado y ejecutable.
@@ -160,7 +176,7 @@ El equipo trabajará con cinco roles: **PO, Arquitecto, AI Engineer, Testing y S
 ## 2.4 Testing
 
 * Diseña y ejecuta pruebas para los criterios de aceptación de HU-01 y HU-02.
-* Valida el onboarding guiado, la validación de datos, la activación de la wallet y el acceso a pagos.
+* Valida el onboarding guiado, DNI, contraseña y correo, los casos de OTP, el inicio y cierre de sesión, la activación de la wallet y el acceso a pagos.
 * Prueba los resultados exitoso, fallido y expirado, las transiciones asíncronas y las acciones de reintento o retorno.
 * Comprueba que una misma operación no se contabilice dos veces.
 * Registra evidencias reproducibles y verifica que solo los pagos exitosos se sumen al total de la colecta.
@@ -170,6 +186,7 @@ El equipo trabajará con cinco roles: **PO, Arquitecto, AI Engineer, Testing y S
 * Revisa el manejo de datos y la configuración de la aplicación.
 * Comprueba que no se incluyan credenciales, secretos ni datos personales reales.
 * Revisa controles de acceso y validaciones relevantes para el alcance.
+* Revisa la protección de contraseñas y OTP, el acceso exclusivo de clientes validados y la invalidación de la sesión al salir.
 * Ayuda a revisar los riesgos de pagos duplicados, errores de estado y mensajes que puedan confundir al usuario.
 * Verifica que los estados y errores no se presenten de forma engañosa.
 
@@ -201,8 +218,9 @@ Según el cronograma del Día 5:
 |-|-|-|
 |Revisar repositorio, historias, contrato y URL del mock|Arquitecto + PO|Contrato y alcance confirmados|
 |Definir pasos de onboarding, validaciones y eventos analíticos|PO + AI Engineer|Flujo HU-01 especificado|
-|Implementar onboarding guiado, paso actual y errores accionables|AI Engineer|HU-01: el usuario sabe en qué paso está y cómo corregir datos inválidos|
-|Activar wallet al completar el onboarding y habilitar entrada a pagos|AI Engineer|HU-01: wallet `ACTIVE` y entrada a pagos habilitada|
+|Implementar paso 1 del registro con DNI/CE, contraseña de 6 dígitos y correo, con campo de contraseña visible, colores corporativos y sin textos de prueba|AI Engineer|Campos validados y limitados, paso actual y errores accionables|
+|Implementar envío y validación de OTP en el paso 2|AI Engineer + Arquitecto|Cliente validado solo tras OTP correcto; integración o mock documentado|
+|Activar wallet, implementar inicio de sesión, botón de logout y cierre de sesión, y proteger pagos|AI Engineer|Wallet `ACTIVE` tras validar OTP; acceso con sesión, logout visible y cierre efectivo|
 |Implementar pantalla previa al pago con destinatario y monto|AI Engineer|HU-02: destino y monto visibles antes de confirmar|
 |Conectar pago a contacto, consultar estado, referencia e historial|AI Engineer|HU-02: flujo de pago conectado al mock|
 |Ejecutar pruebas de la ruta feliz y registrar evidencias|Testing + Security|Evidencia de aceptación funcional|
@@ -211,11 +229,12 @@ Según el cronograma del Día 5:
 
 Una versión ejecutable que permita:
 
-1. Mostrar los pasos del onboarding y el paso actual.
-2. Bloquear datos obligatorios ausentes o inválidos y explicar cómo corregirlos.
-3. Completar el onboarding, dejar la wallet en `ACTIVE` y habilitar el acceso a pagos de bajo monto.
-4. Mostrar el destinatario y el monto antes de confirmar una transferencia.
-5. Crear un pago simulado y consultar su estado; cuando sea exitoso, mostrar la referencia y conservarlo en el historial.
+1. Mostrar los dos pasos del onboarding y el paso actual.
+2. Registrar DNI o CE de 8 caracteres numéricos, correo y contraseña de 6 dígitos con las reglas definidas, bloqueando datos inválidos con mensajes accionables.
+3. Enviar y validar el OTP en el paso 2; solo entonces validar al cliente y dejar la wallet en `ACTIVE`.
+4. Iniciar sesión con documento y contraseña, acceder a pagos y cerrar sesión con un botón de logout visible.
+5. Mostrar el destinatario y el monto antes de confirmar una transferencia.
+6. Crear un pago simulado y consultar su estado; cuando sea exitoso, mostrar la referencia y conservarlo en el historial.
 
 La prioridad es lograr primero un recorrido funcional alineado con los criterios principales de HU-01 y HU-02. La instrumentación analítica, los límites por proveedor/canal y los casos de excepción se completarán y probarán en el Sprint 2. Las demás HUs no se incorporan a este alcance detallado.
 
@@ -241,6 +260,7 @@ Antes de iniciar el segundo sprint, revisaremos:
 |-|-|-|
 |Registrar inicio de onboarding, finalización de cada paso y cierre del flujo|AI Engineer|Eventos HU-01 disponibles para analítica|
 |Definir y probar las marcas de tiempo de inicio/fin del onboarding|PO + Testing|Definición documentada de medición; frontera pendiente de confirmar con producto|
+|Probar validaciones de registro (tipos de documento, longitudes, caracteres), OTP incorrecto/expirado, reenvío, acceso, logout y revisión visual (colores, sin textos de prueba)|Testing + Security|Evidencia de validaciones, protección de acceso e invalidación de sesión|
 |Validar la regla de monto bajo por proveedor/canal antes del envío|AI Engineer + Arquitecto|Validación previa al pago y regla configurable/documentada|
 |Manejar transiciones asíncronas hasta el resultado terminal|AI Engineer|Pago con estado final comunicado correctamente|
 |Probar resultado exitoso, fallido y expirado|Testing|Evidencia de un único resultado terminal por intento|
@@ -254,7 +274,7 @@ Antes de iniciar el segundo sprint, revisaremos:
 
 Una demo que permita verificar:
 
-* HU-01: onboarding guiado; paso actual visible; validación de datos incompletos/incorrectos con mensajes accionables; wallet activa y entrada a pagos al completar; eventos de analítica del flujo.
+* HU-01: registro guiado con DNI, contraseña y correo; OTP en el paso 2; cliente validado y wallet activa solo tras el OTP; inicio de sesión, acceso protegido a pagos y cierre de sesión efectivo; errores accionables y eventos de analítica.
 * HU-02: identidad del destinatario y monto visibles antes de confirmar; validación de monto antes del envío; transición de estado contemplada; resultado terminal único (exitoso, fallido o expirado); referencia e historial en caso exitoso; acción de reintento o retorno sin duplicar cargos en fallo/expiración.
 * Eventos analíticos necesarios para inicio/pasos/cierre del onboarding, funnel de checkout y activación del pagador, con estructura revisable para el reporte.
 * Panel básico de la colecta únicamente si no compromete los criterios oficiales de la épica y HU-01/HU-02.
@@ -289,9 +309,27 @@ Es importante separar **criterios funcionales verificables durante el hackathon*
 |HU1-AC5|La mediana de finalización baja de 8 minutos a 3 minutos en el trimestre posterior al lanzamiento.|No es medible con una única demo; comprobar que pueden capturarse los tiempos necesarios.|Instrumentación y definición del cálculo documentadas; resultado real pendiente de datos de cohorte.|
 |HU1-AC6|La analítica mensual permite contar nuevos usuarios activos y atribuir gasto de adquisición para verificar MAU 1,000–2,000 y CAC de PEN 10 en los primeros 3 meses.|Revisar que el esquema de eventos y el reporte incluyan los campos/fuentes necesarios, sin afirmar resultados reales.|Estructura del reporte y fuentes necesarias documentadas.|
 
+**Criterios adicionales propuestos para HU-01: registro y sesión**
+
+Estos criterios detallan el flujo de esta propuesta y están sujetos a validación de Producto y del mentor; complementan, sin sustituir, los criterios oficiales anteriores.
+
+|ID|Criterio propuesto|Cómo lo probaremos en la demo|Evidencia esperada|
+|-|-|-|-|
+|HU1-P01|El tipo de documento solo admite DNI y CE, y el número tiene 8 caracteres como máximo; la interfaz bloquea la escritura de más de 8 y exige 8 para avanzar, preservando ceros iniciales.|Abrir la lista de tipos; probar `73757451`, un documento con cero inicial, valores de 7 caracteres e intentar escribir un noveno.|Solo aparecen DNI y CE; no se puede escribir un noveno carácter; los valores de 7 no avanzan.|
+|HU1-P02|La contraseña tiene 6 dígitos; la interfaz bloquea la escritura de más de 6. El correo es obligatorio y válido.|Intentar escribir 7 dígitos, ingresar menos de 6 y un correo inválido, y luego valores válidos.|El campo no acepta un séptimo carácter; los datos inválidos se rechazan con mensajes accionables en interfaz y servidor.|
+|HU1-P07|El número de documento solo acepta dígitos; se rechazan letras, espacios y caracteres extraños, tanto al escribir como al enviar al servidor.|Probar `ABC12345`, `7375 7451`, `7375745-` y pegar texto con símbolos.|El campo no admite o rechaza esos valores y el servidor responde con error de validación.|
+|HU1-P08|Los formularios de registro e inicio de sesión muestran el campo de contraseña.|Abrir el paso 1 del registro y la pantalla de inicio de sesión.|Campo de contraseña visible y con el texto enmascarado en ambas pantallas.|
+|HU1-P09|Una vez autenticado, la interfaz muestra un botón de cerrar sesión.|Iniciar sesión y revisar la pantalla de pagos y la de entrada.|Botón de logout visible; al usarlo se cierra la sesión (ver HU1-P05).|
+|HU1-P10|Las pantallas de HU-01 usan los colores corporativos.|Revisar registro, OTP, inicio de sesión y pagos frente a la paleta confirmada por Producto.|Capturas con la paleta corporativa aplicada; paleta pendiente de confirmar.|
+|HU1-P11|La interfaz no menciona el entorno de prueba: no aparecen textos como "admite test" ni "debe empezar con test".|Recorrer todas las pantallas y mensajes de HU-01 en busca de esas referencias.|Ningún texto, ayuda o mensaje visible alude a datos o entornos de prueba.|
+|HU1-P03|El paso 2 envía un OTP al correo registrado y exige su validación para completar el onboarding, validar al cliente y activar la wallet.|Probar OTP correcto, incorrecto y expirado, y el reenvío.|Solo un OTP válido completa el registro y deja la wallet en `ACTIVE`; errores y reenvío son visibles.|
+|HU1-P04|Solo un cliente validado puede iniciar sesión con su documento (DNI o CE) y contraseña correctos y acceder a pagos.|Probar cliente sin validar, contraseña incorrecta y cliente validado con credenciales correctas.|Los primeros intentos no crean sesión ni dan acceso; el último permite acceder a pagos.|
+|HU1-P05|El usuario autenticado puede cerrar sesión y la sesión invalidada ya no permite acceder a recursos protegidos.|Cerrar sesión e intentar volver a acceder a pagos con la sesión anterior; iniciar sesión de nuevo.|El acceso anterior es rechazado y un nuevo inicio de sesión válido restaura el acceso.|
+|HU1-P06|Las contraseñas y los OTP se protegen y no aparecen en texto plano en almacenamiento, eventos o logs.|Revisar almacenamiento y registros con datos sintéticos.|Evidencia de protección y ausencia de secretos en eventos y logs.|
+
 **Contexto y supuestos a respetar en HU-01**
 
-* Los requisitos de KYC y documentos deben ser definidos por Cumplimiento y Producto antes de implementación. Para el hackathon se utilizarán únicamente los escenarios y datos de prueba disponibles en el mock; no inventaremos requisitos de KYC adicionales.
+* El DNI y la verificación de correo mediante OTP son decisiones propuestas para el registro, no una validación de identidad o KYC completa. Los requisitos de KYC deben ser definidos por Cumplimiento y Producto; se utilizarán datos de prueba y no se inventarán requisitos adicionales.
 * Las metas MAU de 1,000–2,000 y CAC de PEN 10 fueron definidas por el PO; son indicadores de negocio y no un criterio que podamos declarar cumplido por la demo.
 * La HU deja abierta la frontera oficial para medir duración del onboarding. Producto debe definir qué eventos/timestamps representan inicio y fin. Hasta entonces, la instrumentación se documentará como propuesta, no como definición aprobada.
 
@@ -341,7 +379,7 @@ Estos criterios **no pertenecen a las HU-01 ni HU-02**. Son una extensión del p
 
 La demo se considerará exitosa si podemos mostrar y adjuntar evidencia de:
 
-1. **HU-01 funcional:** pasos del onboarding y paso actual visibles; validación bloqueante con mensajes accionables; wallet en `ACTIVE` y acceso a pagos tras finalizar correctamente.
+1. **HU-01 funcional:** registro con DNI o CE, contraseña de 6 dígitos y correo, sin textos de prueba y con colores corporativos; OTP en el paso 2 antes de validar al cliente y activar la wallet; inicio de sesión con acceso a pagos y cierre de sesión efectivo; validaciones y mensajes accionables.
 2. **HU-01 instrumentada:** eventos de inicio, finalización de cada paso y cierre del onboarding; estructura para medir la duración y el reporte mensual de nuevos usuarios activos/atribución de adquisición.
 3. **HU-02 funcional:** destinatario y monto visibles antes de confirmar; validación de monto antes del envío; manejo de estados asíncronos; un único resultado terminal por intento; referencia e historial cuando el pago sea exitoso; opción clara de reintentar o volver ante fallo/expiración sin duplicar el cargo.
 4. **HU-02 instrumentada:** evento de activación del pagador después de una transacción exitosa y datos/eventos suficientes para calcular la caída en checkout.
@@ -362,12 +400,16 @@ La demo se considerará exitosa si podemos mostrar y adjuntar evidencia de:
 4. ¿Qué datos estarán disponibles para atribuir gasto de adquisición y calcular CAC?
 5. ¿Podemos implementar la gestión de la colecta como una extensión propia después de completar los criterios de HU-01 y HU-02?
 6. ¿Qué cobertura de las demás historias requiere el reto general? La respuesta se registrará por separado y no se incorporará automáticamente a este alcance de HU-01/HU-02.
+7. ¿Se acepta para HU-01 el registro con DNI, contraseña y correo, la validación por OTP y el inicio y cierre de sesión?
+8. ¿Qué contrato de registro, sesión y correo/OTP está disponible para la demo y cuáles son la vigencia, los límites de intentos y las condiciones de reenvío del código?
 
 \---
 
 # 6\. Checklist para el G1
 
 * \[ ] Alcance alineado solo con la parte de la épica aplicable a HU-01 y HU-02: onboarding de baja fricción, pagos de bajo monto, estados claros, límites por proveedor/canal e instrumentación.
+* \[ ] Registro con DNI de 8 dígitos, contraseña y correo; OTP en el paso 2 antes de validar al cliente y activar la wallet.
+* \[ ] Inicio de sesión para clientes validados y cierre de sesión con acceso protegido; decisiones y contrato pendientes de validar con Producto.
 * \[ ] No se incorporan requisitos de QR ni de otras HUs en el alcance o en los criterios de aceptación de este documento.
 * \[ ] Extensión de colecta identificada como funcionalidad secundaria, posterior a los criterios oficiales de HU-01 y HU-02.
 * \[ ] Fuera de alcance identificado: despliegue multipaís, lealtad avanzada, paridad completa entre proveedores, APIs abiertas y gestión escolar integral.
@@ -381,7 +423,7 @@ La demo se considerará exitosa si podemos mostrar y adjuntar evidencia de:
 
 # 7\. Guion breve para explicar la propuesta al mentor
 
-> Nuestro caso de uso de demostración es una colecta voluntaria para una promoción escolar. Este plan cubre solo HU-01 y HU-02 y toma de la épica los requisitos que les corresponden: onboarding de baja fricción, pago de bajo monto, confirmación clara de estados, validación de límites por proveedor/canal e instrumentación de onboarding, checkout y activación. El panel de colecta será una extensión si no pone en riesgo esos criterios oficiales. No estamos incorporando aquí requisitos de las otras historias.
+> Nuestro caso de uso de demostración es una colecta voluntaria para una promoción escolar. Este plan cubre solo HU-01 y HU-02 y toma de la épica los requisitos que les corresponden: onboarding de baja fricción, pago de bajo monto, confirmación clara de estados, validación de límites por proveedor/canal e instrumentación de onboarding, checkout y activación. Proponemos para HU-01 registro con DNI, contraseña y correo, validación mediante OTP e inicio y cierre de sesión, sujetos a validación con Producto. El panel de colecta será una extensión si no pone en riesgo los criterios oficiales. No estamos incorporando aquí requisitos de las otras historias.
 >
 > Hemos definido los roles y dividido el trabajo en dos sprints: primero construiremos el flujo de extremo a extremo; después reforzaremos las excepciones, las pruebas, la documentación y la demo. Cualquier requisito global adicional del reto se registrará por separado y no se incorporará automáticamente al alcance ni a los criterios de HU-01 y HU-02.
 
