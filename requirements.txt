@@ -1,0 +1,21 @@
+crewai>=1.15.26,<2
+github-copilot-sdk>=1.0.19,<2
+python-dotenv>=1.0.0
+requests>=2.32.0
+httpx>=0.27.0
+rich>=13.0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ¿Cuándo activar pip-system-certs?
+# - Solo actívalo (descomentando la línea de abajo) si estás en una laptop o red
+#   corporativa con proxy / inspección TLS (ej. Zscaler, VPN NTT DATA, BCP) y las
+#   llamadas HTTPS en Python fallan con: "CERTIFICATE_VERIFY_FAILED".
+# - En una máquina personal o red normal, DÉJALO COMENTADO (no es necesario).
+#
+# NOTA DE INSTALACIÓN EN WINDOWS:
+# Si lo descomentas, instala los requerimientos usando:
+#     python -m pip install -r requirements.txt
+# (NO uses "pip install ..." directamente, ya que este paquete actualiza pip y
+# Windows bloquea el archivo pip.exe si está en ejecución).
+# ─────────────────────────────────────────────────────────────────────────────
+# pip-system-certs>=4.0

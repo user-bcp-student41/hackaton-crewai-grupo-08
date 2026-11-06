@@ -1,0 +1,22 @@
+services:
+  github-project:
+    image: localhost/mcp-local_github-project:latest
+    environment:
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      GITHUB_OWNER: ${GITHUB_OWNER}
+      GITHUB_REPO: ${GITHUB_REPO}
+      MCP_TOOL_GROUPS: all
+      AGENT_RECLAIM_ENABLED: "false"
+    ports:
+      - "8083:8080"   # 8080 lo usa Quarkus (workshop-auth-backend)
+
+  github-task:
+    image: localhost/mcp-local_github-task:latest
+    environment:
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      GITHUB_OWNER: ${GITHUB_OWNER}
+      GITHUB_REPO: ${GITHUB_REPO}
+      MCP_TOOL_GROUPS: all
+      AGENT_RECLAIM_ENABLED: "false"
+    ports:
+      - "8081:8080"
